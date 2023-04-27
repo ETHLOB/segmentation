@@ -18,7 +18,7 @@ int main(int argc, char *argv[]) {
   const char * outputFileName = argv[2];
 
   // Definir el tipo de datos de entrada y salida
-  typedef unsigned char PixelType;
+  typedef float PixelType;
   const unsigned int Dimension = 3;
   typedef itk::Image<PixelType, Dimension> ImageType;
 
@@ -38,7 +38,7 @@ int main(int argc, char *argv[]) {
   // informacion de la imagen pero la pone en un objeto itreable que no se como extraer en su
   // totalidad para luego usar el metodo GetFileNames()
 
-  const std::vector<std::string> fileNames = nameGenerator->GetFileNames(seriesUID[1]);
+  const std::vector<std::string> fileNames = nameGenerator->GetFileNames(seriesUID[2]);
 
   // Definir el lector de la serie de imágenes DICOM
   typedef itk::ImageSeriesReader<ImageType> ReaderType;

@@ -57,7 +57,4 @@ MARK_AS_ADVANCED(
 ADD_EXECUTABLE(experimento experimento.cxx)
 TARGET_LINK_LIBRARIES(experimento ${ITK_LIBRARIES})
 
-ADD_EXECUTABLE(experimento_2 experimento_2.cxx)
-TARGET_LINK_LIBRARIES(experimento_2 ${ITK_LIBRARIES})
-
 ## eof - CMakeLists.txt
