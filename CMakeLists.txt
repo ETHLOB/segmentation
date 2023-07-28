@@ -54,7 +54,16 @@ MARK_AS_ADVANCED(
 ## = Programs to compile =
 ## =======================
 
-ADD_EXECUTABLE(experimento experimento.cxx)
-TARGET_LINK_LIBRARIES(experimento ${ITK_LIBRARIES})
+ADD_EXECUTABLE(extraerImagen extraerImagen.cxx)
+TARGET_LINK_LIBRARIES(extraerImagen ${ITK_LIBRARIES})
+
+ADD_EXECUTABLE(extraerImagenSerial extraerImagenSerial.cxx)
+TARGET_LINK_LIBRARIES(extraerImagenSerial ${ITK_LIBRARIES})
+
+ADD_EXECUTABLE(filtroExtraccion filtroExtraccion.cxx)
+TARGET_LINK_LIBRARIES(filtroExtraccion ${ITK_LIBRARIES})
+
+ADD_EXECUTABLE(filtroExtraccionSerial filtroExtraccionSerial.cxx)
+TARGET_LINK_LIBRARIES(filtroExtraccionSerial ${ITK_LIBRARIES})
 
 ## eof - CMakeLists.txt
