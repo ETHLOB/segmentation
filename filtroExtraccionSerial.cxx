@@ -18,12 +18,11 @@ int main(int argc, char * argv[]) {
         return EXIT_FAILURE;
     }
 
-    typedef int PixelType;
     const unsigned char InputDimension = 3;
     const unsigned char OutputDimension = 2;
 
-    typedef itk::Image<PixelType, InputDimension> InputImageType;
-    typedef itk::Image<PixelType, OutputDimension> OutputImageType;
+    typedef itk::Image<int, InputDimension> InputImageType;
+    typedef itk::Image<unsigned short, OutputDimension> OutputImageType;
 
     // Here we recover the file names from the command line arguments
     const char *inputFileName = argv[1];
@@ -41,44 +40,60 @@ int main(int argc, char * argv[]) {
         return EXIT_FAILURE;
     }
 
-    typedef itk::ExtractImageFilter<InputImageType, OutputImageType> ExtractFilterType;
-    auto extractFilter = ExtractFilterType::New();
-    extractFilter->SetDirectionCollapseToSubmatrix();
-    extractFilter->SetInput(inputImage);
-
-    InputImageType::RegionType inputRegion = inputImage->GetBufferedRegion(); // set up the extraction region [one slice]
-
-    InputImageType::SizeType size = inputRegion.GetSize();
-
-    const unsigned int zDim = size[2]; // we are getting the dimension of
-    const unsigned int zSize = std::stoi(argv[3]); // this value should be always 0
-
-    size[2] = zSize; // we extract along z direction
-
-    InputImageType::IndexType start = inputRegion.GetIndex();
-
-    InputImageType::RegionType desiredRegion;
-    desiredRegion.SetSize(size);
-
-    typedef itk::Image<unsigned char, OutputDimension> RescaledImageType;
-    typedef itk::RescaleIntensityImageFilter<OutputImageType, RescaledImageType> RescalerType;
-    auto rescaler = RescalerType::New();
-
-    rescaler->SetOutputMinimum(0);
-    rescaler->SetOutputMaximum(255);
-
-    typedef itk::ThresholdImageFilter<OutputImageType> ThresholdImageFilterType;
+    typedef itk::ThresholdImageFilter<InputImageType> ThresholdImageFilterType;
     auto thresholdFilter_below = ThresholdImageFilterType::New();
     auto thresholdFilter_above = ThresholdImageFilterType::New();
 
-    const OutputImageType::PixelType lowerThreshold = -1024;
-    const OutputImageType::PixelType upperThreshold = 1024;
+    const InputImageType::PixelType lowerThreshold = -1024;
+    const InputImageType::PixelType upperThreshold = 1024;
 
     thresholdFilter_below->ThresholdBelow(lowerThreshold);
     thresholdFilter_below->SetOutsideValue(lowerThreshold);
 
     thresholdFilter_above->ThresholdAbove(upperThreshold);
     thresholdFilter_above->SetOutsideValue(upperThreshold);
+
+    thresholdFilter_below->SetInput(inputImage);
+    thresholdFilter_above->SetInput(thresholdFilter_below->GetOutput());
+
+    typedef itk::Image<unsigned short, InputDimension> RescaledImageType;
+    typedef itk::RescaleIntensityImageFilter<InputImageType, RescaledImageType> RescalerType;
+    auto rescaler = RescalerType::New();
+
+    rescaler->SetOutputMinimum(std::numeric_limits<RescaledImageType::PixelType>::lowest());
+    rescaler->SetOutputMaximum(std::numeric_limits<RescaledImageType::PixelType>::max());
+
+    rescaler->SetInput(thresholdFilter_above->GetOutput());
+
+    auto RescaledImage = RescaledImageType::New();
+    RescaledImage = rescaler->GetOutput();
+
+//    typedef itk::ImageFileWriter<RescaledImageType> WriterType;
+//    WriterType::Pointer writer = WriterType::New();
+//    writer->SetFileName("rescaled.mha");
+//    writer->SetInput(RescaledImage);
+//    writer->Update();
+
+    typedef itk::ExtractImageFilter<RescaledImageType, OutputImageType> ExtractFilterType;
+    auto extractFilter = ExtractFilterType::New();
+    extractFilter->SetDirectionCollapseToSubmatrix();
+    extractFilter->SetInput(RescaledImage);
+
+    RescaledImageType::RegionType inputRegion = RescaledImage->GetBufferedRegion(); // set up the extraction region [one slice]
+
+    RescaledImageType::SizeType size = inputRegion.GetSize();
+
+    std::cout << size[2] << std::endl;
+
+    const unsigned int zDim = size[2]; // we are getting the dimension of
+    const unsigned int zSize = std::stoi(argv[3]); // this value should be always 0
+
+    size[2] = zSize; // we extract along z direction
+
+    RescaledImageType::IndexType start = inputRegion.GetIndex();
+
+    RescaledImageType::RegionType desiredRegion;
+    desiredRegion.SetSize(size);
 
     std::string outputFileName;
 
@@ -90,10 +105,6 @@ int main(int argc, char * argv[]) {
 
         extractFilter->SetExtractionRegion(desiredRegion);
 
-        thresholdFilter_below->SetInput(extractFilter->GetOutput());
-        thresholdFilter_above->SetInput(thresholdFilter_below->GetOutput());
-        rescaler->SetInput(thresholdFilter_above->GetOutput());
-
         std::stringstream stream;
         stream << i;
 
@@ -104,7 +115,7 @@ int main(int argc, char * argv[]) {
 
         try
         {
-            itk::WriteImage(rescaler->GetOutput(), outputFileName);
+            itk::WriteImage(extractFilter->GetOutput(), outputFileName);
             outputFileName.clear();
         }
         catch (const itk::ExceptionObject & err)
